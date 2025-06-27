@@ -1,0 +1,27 @@
+.DS_store
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+# C extensions
+*.so
+
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+.eggs/
+
+# Python
+.pytest_cache/
+.ruff_cache/
+
+# IDE-related
+.idea/
+.clangd
+
+# Dev
+venv
