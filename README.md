@@ -42,10 +42,14 @@ size = 256
 cost_matrix = torch.randn((batch_size, size, size), device="cuda")
 
 # Solve the assignment problem
+# assignments shape will be (batch_size, size)
+# Each batch element contains the column indices for optimal assignment
 assignments = solve_lap(cost_matrix)
 
-# assignments shape will be (batch_size, size)
-# Each batch element contains the row indices for optimal assignment
+# Calculate total costs
+batch_idxs = torch.arange(batch_size, device=assignments.device).unsqueeze(1)
+row_idxs = torch.arange(size, device=assignments.device).unsqueeze(0)
+total_cost = cost_matrix[batch_idxs, row_idxs, assignments].sum()
 ```
 
 The solver also supports 2D inputs for single matrices:
