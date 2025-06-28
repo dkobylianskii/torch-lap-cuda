@@ -31,5 +31,5 @@ def solve_lap(cost_matrix: torch.Tensor) -> torch.Tensor:
     if cost_matrix.size(1) != cost_matrix.size(2):
         raise ValueError("Input tensor must be square (size, size) for each batch")
     assignments = lap_cuda_lib.solve_lap(cost_matrix)
-    # assignments = torch.argsort(assignments, dim=1)
+    assignments = torch.argsort(assignments, dim=1)
     return assignments.squeeze(0) if squeeze_ else assignments

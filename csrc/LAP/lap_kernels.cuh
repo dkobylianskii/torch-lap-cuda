@@ -587,7 +587,8 @@ fundef void get_objective(GLOBAL_HANDLE<data> &gh)
   for (uint c = threadIdx.x; c < SIZE; c += blockDim.x)
   {
     obj += gh.cost[c * SIZE + gh.row_of_star_at_column[c]];
-    // printf("r: %u, c: %u, obj: %u\n", c, gh.row_of_star_at_column[c], obj);
+    // printf("r: %u, c: %u, obj: %f, cost: %f\n", c, gh.row_of_star_at_column[c], obj, 
+    //        (float)gh.cost[c * SIZE + gh.row_of_star_at_column[c]]);
   }
   obj = BR(temp_storage).Reduce(obj, cub::Sum());
   if (threadIdx.x == 0)

@@ -29,10 +29,10 @@ torch::Tensor solve(scalar_t* cost_matrix_ptr, uint batch_size, uint dim, uint d
       .requires_grad(false);
   torch::Tensor assignments_tensor = torch::empty({batch_size, dim}, options);
   int32_t *assignments_data = assignments_tensor.data_ptr<int32_t>();
-  cudaMemcpy(assignments_data, solver->th.row_of_star_at_column,
-             batch_size * dim * sizeof(int32_t), cudaMemcpyDeviceToDevice);
-  // cudaMemcpy(assignments_data, solver->th.column_of_star_at_row,
+  // cudaMemcpy(assignments_data, solver->th.row_of_star_at_column,
   //            batch_size * dim * sizeof(int32_t), cudaMemcpyDeviceToDevice);
+  cudaMemcpy(assignments_data, solver->th.column_of_star_at_row,
+             batch_size * dim * sizeof(int32_t), cudaMemcpyDeviceToDevice);
   delete solver;
   return assignments_tensor;
 }
