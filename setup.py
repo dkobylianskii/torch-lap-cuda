@@ -28,7 +28,7 @@ PACKAGE_NAME = "lap_cuda"
 
 @functools.lru_cache(maxsize=None)
 def cuda_archs() -> str:
-    return os.getenv("LAP_CUDA_ARCHS", "75;80;90;100;120").split(";")
+    return os.getenv("LAP_CUDA_ARCHS", "75;80;89;90;100;120").split(";")
 
 
 def get_platform():
@@ -93,7 +93,10 @@ for arch in cuda_archs():
     if bare_metal_version >= Version("11.1") and arch == "80":
         nvcc_flags.append("-gencode")
         nvcc_flags.append("arch=compute_90,code=sm_90")
-    if bare_metal_version >= Version("11.8") and arch == "90":
+    if bare_metal_version >= Version("11.8") and arch == "89":
+        nvcc_flags.append("-gencode")
+        nvcc_flags.append("arch=compute_89,code=sm_89")
+    if bare_metal_version >= Version("12.0") and arch == "90":
         nvcc_flags.append("-gencode")
         nvcc_flags.append("arch=compute_90,code=sm_90")
     if bare_metal_version >= Version("12.8") and arch == "100":

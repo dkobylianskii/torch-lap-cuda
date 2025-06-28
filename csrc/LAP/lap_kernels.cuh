@@ -6,7 +6,7 @@
 #define fundef template <typename data = int> \
 __device__ __forceinline__
 
-const uint nthr = 256;
+const uint nthr = 512;
 
 __constant__ size_t SIZE;
 __constant__ uint NPROB;
@@ -576,7 +576,9 @@ fundef void BHA(GLOBAL_HANDLE<data> &gh, SHARED_HANDLE &sh, const uint problemID
     __syncthreads();
   }
   __syncthreads();
+  #ifdef __DEBUG__
   get_objective(gh);
+  #endif
 }
 
 fundef void get_objective(GLOBAL_HANDLE<data> &gh)
