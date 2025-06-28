@@ -1,7 +1,7 @@
 import pytest
 import torch
 import numpy as np
-from lap import solve_lap
+from lap_cuda import solve_lap
 from scipy.optimize import linear_sum_assignment
 
 

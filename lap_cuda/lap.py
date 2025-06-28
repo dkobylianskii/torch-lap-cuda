@@ -9,8 +9,9 @@ def solve_lap(cost_matrix: torch.Tensor) -> torch.Tensor:
     Solve the Linear Assignment Problem using GPU-accelerated Hungarian algorithm.
 
     Args:
-        cost_matrix (torch.Tensor): A square matrix of costs (NxN) on GPU.
-            Must contain unsigned integer values.
+        cost_matrix (torch.Tensor): A square matrix of costs (BxNxN) on GPU.
+        The first dimension is the batch size, and the last two dimensions are the cost matrix.
+        If the input is 2D, it is assumed to be a single batch (B=1).
 
     Returns:
         torch.Tensor: Assignment vector where index i contains the column assigned to row i.

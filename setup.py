@@ -23,12 +23,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
-PACKAGE_NAME = "cuda_lap"
+PACKAGE_NAME = "lap_cuda"
 
 
 @functools.lru_cache(maxsize=None)
 def cuda_archs() -> str:
-    return os.getenv("CUDA_LAP_ARCHS", "75;80;90;100;120").split(";")
+    return os.getenv("LAP_CUDA_ARCHS", "75;80;90;100;120").split(";")
 
 
 def get_platform():
