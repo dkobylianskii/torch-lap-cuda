@@ -24,8 +24,8 @@ Please cite the original work if you use this code in your research:  https://do
 You can install the package directly from source:
 
 ```bash
-git clone https://github.com/dkobylianskii/lap_cuda.git
-cd lap_cuda
+git clone https://github.com/dkobylianskii/torch-lap-cuda.git
+cd torch-lap-cuda
 pip install .
 ```
 
@@ -35,7 +35,7 @@ Here's a simple example of how to use the LAP solver:
 
 ```python
 import torch
-from lap_cuda import solve_lap
+from torch_lap_cuda import solve_lap
 
 # Create a random cost matrix (batch_size x N x N)
 batch_size = 128

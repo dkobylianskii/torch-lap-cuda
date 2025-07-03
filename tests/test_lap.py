@@ -1,7 +1,7 @@
 import pytest
 import torch
 import numpy as np
-from lap_cuda import solve_lap
+from torch_lap_cuda import solve_lap
 from scipy.optimize import linear_sum_assignment
 
 
@@ -96,8 +96,8 @@ def test_solver_with_target_padding(scale):
         cost_tensor_[:, n_valid_objects:] = (
             max(0, cost_tensor_.max()) + 2
         )  # Set padding costs
-
-        col_idx_cuda = solve_lap(cost_tensor_.cuda()).cpu().numpy()
+        with pytest.warns(UserWarning):
+            col_idx_cuda = solve_lap(cost_tensor_.cuda()).cpu().numpy()
         row_idx_cuda = np.arange(n_objects)
         row_idx_cuda = row_idx_cuda[col_idx_cuda < n_valid_objects]
         col_idx_cuda = col_idx_cuda[col_idx_cuda < n_valid_objects]

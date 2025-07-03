@@ -23,12 +23,12 @@ with open("README.md", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 this_dir = os.path.dirname(os.path.abspath(__file__))
-PACKAGE_NAME = "lap_cuda"
+PACKAGE_NAME = "torch_lap_cuda"
 
 
 @functools.lru_cache(maxsize=None)
 def cuda_archs() -> str:
-    return os.getenv("LAP_CUDA_ARCHS", "75;80;89;90;100;120").split(";")
+    return os.getenv("torch_lap_cuda_ARCHS", "75;80;89;90;100;120").split(";")
 
 
 def get_platform():
@@ -76,13 +76,13 @@ print("\n\ntorch.__version__  = {}\n\n".format(torch.__version__))
 TORCH_MAJOR = int(torch.__version__.split(".")[0])
 TORCH_MINOR = int(torch.__version__.split(".")[1])
 
-check_if_cuda_home_none("lap_cuda")
+check_if_cuda_home_none("torch_lap_cuda")
 nvcc_flags = []
 
 _, bare_metal_version = get_cuda_bare_metal_version(CUDA_HOME)
 if bare_metal_version < Version("10.0"):
     raise RuntimeError(
-        "lap_cuda is only supported on CUDA 10.0 and above.  "
+        "torch_lap_cuda is only supported on CUDA 10.0 and above.  "
         "Note: make sure nvcc has a supported version by running nvcc -V."
     )
 
@@ -108,7 +108,7 @@ for arch in cuda_archs():
 
 ext_modules.append(
     CUDAExtension(
-        name="lap_cuda_lib",
+        name="torch_lap_cuda_lib",
         sources=["csrc/lap_torch.cu"],
         extra_compile_args={
             "cxx": ["-O3", "-std=c++17"],
@@ -133,10 +133,10 @@ ext_modules.append(
 
 
 def get_package_version():
-    with open(Path(this_dir) / "lap_cuda" / "__init__.py", "r") as f:
+    with open(Path(this_dir) / "torch_lap_cuda" / "__init__.py", "r") as f:
         version_match = re.search(r"^__version__\s*=\s*(.*)$", f.read(), re.MULTILINE)
     public_version = ast.literal_eval(version_match.group(1))
-    local_version = os.environ.get("LAP_CUDA_LOCAL_VERSION")
+    local_version = os.environ.get("torch_lap_cuda_LOCAL_VERSION")
     if local_version:
         return f"{public_version}+{local_version}"
     else:
@@ -155,12 +155,12 @@ setup(
             "dist",
             "docs",
             "benchmarks",
-            "lap_cuda.egg-info",
+            "torch_lap_cuda.egg-info",
         )
     ),
     author="Dmitrii Kobylianskii",
     author_email="kobad2@gmail.com",
-    description="CUDA implementation of LAP (Linear Assignment Problem) solver for PyTorch",
+    description="PyTorch wrapper for HyLAC CUDA library for solving linear assignment problems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
     # url="https://github.com/Dao-AILab/flash-attention",

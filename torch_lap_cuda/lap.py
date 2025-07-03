@@ -1,6 +1,6 @@
 import torch
 import warnings
-import lap_cuda_lib
+import torch_lap_cuda_lib
 
 
 @torch.no_grad()
@@ -34,7 +34,7 @@ def solve_lap(cost_matrix: torch.Tensor, return_rows: bool = False) -> torch.Ten
         cost_matrix = cost_matrix.unsqueeze(0)
     if cost_matrix.size(1) != cost_matrix.size(2):
         raise ValueError("Input tensor must be square (size, size) for each batch")
-    assignments = lap_cuda_lib.solve_lap(cost_matrix)
+    assignments = torch_lap_cuda_lib.solve_lap(cost_matrix)
     if return_rows:
         return assignments.squeeze(0) if squeeze_ else assignments
     # Convert assignments to column indices

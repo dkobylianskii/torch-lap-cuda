@@ -3,7 +3,7 @@ import time
 import torch
 import numpy as np
 from scipy.optimize import linear_sum_assignment
-from lap_cuda import solve_lap
+from torch_lap_cuda import solve_lap
 
 N_TRIALS = 20
 BATCH_SIZES = [1, 64, 256]
@@ -31,9 +31,9 @@ def test_scipy_lap(cost: torch.Tensor):
     return np.mean(times)
 
 
-def test_lap_cuda(cost: torch.Tensor):
+def test_torch_lap_cuda(cost: torch.Tensor):
     """
-    Test the lap_cuda solve_lap function.
+    Test the torch_lap_cuda solve_lap function.
     """
     cost = cost.cuda()
     times = []
@@ -47,16 +47,16 @@ def test_lap_cuda(cost: torch.Tensor):
 
 def main():
     for name, func in RANDOM_FUNCS.items():
-        results = {"scipy": {}, "lap_cuda": {}}
+        results = {"scipy": {}, "torch_lap_cuda": {}}
         for batch_size in BATCH_SIZES:
             for dim in DIMS:
                 cost = func((batch_size, dim, dim))
                 # Test scipy
                 scipy_time = test_scipy_lap(cost)
                 results["scipy"][(batch_size, dim)] = scipy_time
-                # Test lap_cuda
-                lap_cuda_time = test_lap_cuda(cost)
-                results["lap_cuda"][(batch_size, dim)] = lap_cuda_time
+                # Test torch_lap_cuda
+                torch_lap_cuda_time = test_torch_lap_cuda(cost)
+                results["torch_lap_cuda"][(batch_size, dim)] = torch_lap_cuda_time
         # Print results table
         print(f"\nBenchmark for {name} random distribution:")
         print("|", "-" * 66, "|", sep="")
@@ -66,7 +66,7 @@ def main():
         print("|", *["-" * el + "|" for el in [12, 12, 14, 14, 10]], sep="")
         for batch_size, dim in sorted(results["scipy"].keys()):
             scipy_t = results["scipy"][(batch_size, dim)]
-            cuda_t = results["lap_cuda"][(batch_size, dim)]
+            cuda_t = results["torch_lap_cuda"][(batch_size, dim)]
             speedup = scipy_t / cuda_t
             print(
                 f"| {batch_size:^10d} | {dim:^10d} | {scipy_t:^12.6f} | {cuda_t:^12.6f} | {speedup:^7.2f}x |"
