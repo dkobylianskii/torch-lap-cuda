@@ -1,0 +1,23 @@
+[project]
+name = "torch_lap_cuda"
+dynamic = ["version"]
+authors = [
+  { name="Dmitrii Kobylianskii", email="kobad2@gmail.com" },
+]
+description = "PyTorch wrapper for HyLAC CUDA library for solving linear assignment problems."
+readme = "README.md"
+requires-python = ">=3.9"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+license = "MIT"
+license-files = ["LICEN[CS]E*"]
+
+[build-system]
+requires = ["setuptools >= 77.0.3", "torch >= 1.12.0"]
+build-backend = "setuptools.build_meta"
+
+[project.urls]
+Homepage = "https://github.com/dkobylianskii/torch-lap-cuda"
+Issues = "https://github.com/dkobylianskii/torch-lap-cuda/issues"

@@ -150,11 +150,9 @@ setup(
         exclude=(
             "build",
             "csrc",
-            "include",
             "tests",
             "dist",
             "docs",
-            "benchmarks",
             "torch_lap_cuda.egg-info",
         )
     ),
@@ -163,7 +161,6 @@ setup(
     description="PyTorch wrapper for HyLAC CUDA library for solving linear assignment problems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    # url="https://github.com/Dao-AILab/flash-attention",
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: BSD License",
@@ -173,7 +170,6 @@ setup(
     python_requires=">=3.9",
     install_requires=[
         "torch",
-        # "einops",
     ],
     setup_requires=[
         "packaging",
