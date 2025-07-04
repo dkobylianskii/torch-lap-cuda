@@ -121,10 +121,6 @@ ext_modules.append(
                 + nvcc_flags
             ),
         },
-        extra_link_args=[
-            "-fopenmp",
-            "-lcuda",
-        ],
         include_dirs=[
             Path(this_dir) / "csrc" / "include",
         ],

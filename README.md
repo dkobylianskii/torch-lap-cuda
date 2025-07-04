@@ -21,6 +21,12 @@ Please cite the original work if you use this code in your research:  https://do
 
 ## Installation
 
+To install the package, you can use pip:
+
+```bash
+pip install torch-lap-cuda --no-build-isolation
+```
+
 You can install the package directly from source:
 
 ```bash

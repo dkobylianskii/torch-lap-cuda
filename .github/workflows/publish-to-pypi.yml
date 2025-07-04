@@ -1,0 +1,82 @@
+name: Publish Python Package
+
+on: 
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-22.04]
+        torch-version: ["2.6.0"]
+        cuda-version: ["12.6.0"]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11.9"
+      - name: Set CUDA and PyTorch versions
+        run: |
+          echo "MATRIX_CUDA_VERSION=$(echo ${{ matrix.cuda-version }} | awk -F \. {'print $1 $2'})" >> $GITHUB_ENV
+          echo "MATRIX_TORCH_VERSION=$(echo ${{ matrix.torch-version }} | awk -F \. {'print $1 "." $2'})" >> $GITHUB_ENV
+          echo "WHEEL_CUDA_VERSION=$(echo ${{ matrix.cuda-version }} | awk -F \. {'print $1'})" >> $GITHUB_ENV
+          echo "MATRIX_PYTHON_VERSION=$(echo ${{ matrix.python-version }} | awk -F \. {'print $1 $2'})" >> $GITHUB_ENV
+      - name: Install CUDA ${{ matrix.cuda-version }}
+        uses: Jimver/cuda-toolkit@v0.2.25
+        id: cuda-toolkit
+        with:
+          cuda: ${{ matrix.cuda-version }}
+          method: "network"
+          sub-packages: '["nvcc"]'
+      - name: Install PyTorch ${{ matrix.torch-version }}+cu${{ matrix.cuda-version }}
+        run: |
+          pip install --upgrade pip
+          pip install --no-cache-dir torch==${{ matrix.torch-version }} --index-url https://download.pytorch.org/whl/cu${MATRIX_CUDA_VERSION}
+          nvcc --version
+          python --version
+          python -c "import torch; print('PyTorch:', torch.__version__)"
+          python -c "import torch; print('CUDA:', torch.version.cuda)"
+          python -c "from torch.utils import cpp_extension; print (cpp_extension.CUDA_HOME)"
+        shell: bash
+      - name: Install Python dependencies
+        run: |
+          pip install build --user
+      - name: Create source distribution
+        run: |
+          python setup.py sdist --dist-dir=dist
+      - name: Store the distribution packages
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+
+  publish-to-pypi:
+    name: >-
+      Publish Python 🐍 distribution 📦 to PyPI
+    needs:
+      - build
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/p/torch-lap-cuda
+    permissions:
+      id-token: write # IMPORTANT: mandatory for trusted publishing
+    steps:
+      - name: Download all the dists
+        uses: actions/download-artifact@v4
+        with:
+          name: python-package-distributions
+          path: dist/
+      - name: Publish distribution 📦 to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          repository-url: https://pypi.org/legacy/
+          username: __token__
+          password: ${{ secrets.PYPI_API_TOKEN }}
