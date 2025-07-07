@@ -1,4 +1,15 @@
 # CUDA LAP Solver
+[![PyPI version](https://badge.fury.io/py/torch-lap-cuda.svg)](https://badge.fury.io/py/torch-lap-cuda)
+[![Downloads](https://static.pepy.tech/badge/torch-lap-cuda)](https://pepy.tech/project/torch-lap-cuda)
+[![License](https://img.shields.io/badge/MIT-blue.svg)](https://opensource.org/licenses/MIT)
+
+<h4 align="left">
+    <p>
+        <a href="#Installation">Installation</a> |
+        <a href="#Usage">Usage</a> |
+        <a href="#Benchmarks">Benchmarks</a>
+    <p>
+</h4>
 
 A fast CUDA implementation of the Linear Assignment Problem (LAP) solver for PyTorch. This project provides GPU-accelerated HyLAC algorithm implementation that can efficiently handle batched inputs.
 
