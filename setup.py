@@ -28,7 +28,7 @@ PACKAGE_NAME = "torch_lap_cuda"
 
 @functools.lru_cache(maxsize=None)
 def cuda_archs() -> str:
-    return os.getenv("torch_lap_cuda_ARCHS", "75;80;89;90;100;120").split(";")
+    return os.getenv("torch_lap_cuda_ARCHS", "75;80;86;89;90;100;120").split(";")
 
 
 def get_platform():
@@ -92,7 +92,10 @@ nvcc_flags.append(f"arch=compute_{75},code=sm_{75}")
 for arch in cuda_archs():
     if bare_metal_version >= Version("11.1") and arch == "80":
         nvcc_flags.append("-gencode")
-        nvcc_flags.append("arch=compute_90,code=sm_90")
+        nvcc_flags.append("arch=compute_80,code=sm_80")
+    if bare_metal_version >= Version("11.1") and arch == "86":
+        nvcc_flags.append("-gencode")
+        nvcc_flags.append("arch=compute_86,code=sm_86")
     if bare_metal_version >= Version("11.8") and arch == "89":
         nvcc_flags.append("-gencode")
         nvcc_flags.append("arch=compute_89,code=sm_89")
@@ -124,6 +127,7 @@ ext_modules.append(
         include_dirs=[
             Path(this_dir) / "csrc" / "include",
         ],
+        extra_link_args=['-lcuda'],
     )
 )
 
