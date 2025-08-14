@@ -35,6 +35,16 @@ torch::Tensor solve_lap(torch::Tensor const& cost_matrix, at::Device device) {
   // Ensure the input is a square matrix
   TORCH_CHECK(cost_matrix.size(1) == cost_matrix.size(2),
               "Input must be a batch of square matrices");
+
+  auto dtype = cost_matrix.scalar_type();
+  TORCH_CHECK(
+      dtype == at::kHalf || dtype == at::kBFloat16 ||
+      dtype == at::kFloat || dtype == at::kDouble ||
+      dtype == at::kInt || dtype == at::kLong,
+      "solve_lap: expected cost_matrix to have dtype Half, BFloat16, Float, Double, or any Integer type, but got ",
+      dtype
+  );
+
   at::Tensor local_costs, assignments_tensor;
 
   at::cuda::CUDAGuard guard(device);
@@ -43,17 +53,9 @@ torch::Tensor solve_lap(torch::Tensor const& cost_matrix, at::Device device) {
   else
     local_costs = cost_matrix.cpu().to(device);
   
-  switch (cost_matrix.scalar_type())
-  {
-  case torch::kInt32:
-    assignments_tensor = solve<int>(local_costs);
-    break;
-  case torch::kFloat32:
-    assignments_tensor = solve<float>(local_costs);
-    break;
-  default:
-    AT_ERROR("dtype not supported: torch.float32 and torch.int32 only!");
-  };
+  AT_DISPATCH_FLOATING_TYPES_AND2(
+      torch::kInt32, torch::kInt64, cost_matrix.scalar_type(),
+      "solve_lap", [&] { assignments_tensor = solve<scalar_t>(local_costs); });
 
   if (cost_matrix.device() == device)
     assignments_tensor = assignments_tensor.clone();

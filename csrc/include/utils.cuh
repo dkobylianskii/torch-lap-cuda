@@ -23,13 +23,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
   }
 }
 
-#define execKernel(kernel, exec_gridSize, exec_blockSize, stream, verbose, ...)                          \
-  {                                                                                                      \
-    dim3 grid(exec_gridSize);                                                                            \
-    dim3 block(exec_blockSize);                                                                          \
-                                                                                                         \
-    if (verbose)                                                                                         \
-      Log(debug, "Launching %s with nblocks: %u, blockDim: %u", #kernel, exec_gridSize, exec_blockSize); \
-    kernel<<<grid, block, 0, stream>>>(__VA_ARGS__);                                                     \
-    CUDA_RUNTIME(cudaGetLastError());                                                                    \
+#define execKernel(kernel, exec_gridSize, exec_nwarps, stream, verbose, ...)                               \
+  {                                                                                                        \
+    dim3 grid(exec_gridSize);                                                                              \
+    dim3 block(32, exec_nwarps);                                                                           \
+    if (verbose)                                                                                           \
+      Log(debug, "Launching %s with nblocks: %u, blockDim: (%u, 32)", #kernel, exec_gridSize, exec_nwarps);\
+    kernel<<<grid, block, 0, stream>>>(__VA_ARGS__);                                                       \
+    CUDA_RUNTIME(cudaGetLastError());                                                                      \
   }

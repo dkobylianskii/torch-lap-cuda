@@ -28,24 +28,12 @@ public:
   TLAP(at::Tensor cost_matrix_)
       : cost_matrix(cost_matrix_)
   {
-    int64_t n_problem = cost_matrix.size(0);
-    int64_t n_rows = cost_matrix.size(1);
-    int64_t n_cols = cost_matrix.size(2);
-    // cudaOccupancyMaxPotentialBlockSize(&gridSize, &blockSize, THA<data>);
+    int n_problem = cost_matrix.size(0);
+    int n_rows = cost_matrix.size(1);
+    int n_cols = cost_matrix.size(2);
     
-    // cudaDeviceProp prop;
-    // cudaGetDeviceProperties(&prop, cost_matrix.device().index());
-    // blockSize = prop.maxThreadsPerBlock;
-    // blockSize = 512;
     gridSize = n_problem;
-    // cudaOccupancyMaxPotentialBlockSize(
-    //     &gridSize,
-    //     &blockSize,
-    //     THA<data>
-    // );
-    
-    // th.SIZE = n_rows;
-    // th.NPROB = n_problem;
+
     // external memory
     th.slack = cost_matrix.data_ptr<data>();
 
@@ -88,7 +76,7 @@ public:
     at::cuda::CUDAStream cuda_stream = at::cuda::getCurrentCUDAStream();
     cudaStream_t stream = cuda_stream.stream();
     CUDA_RUNTIME(cudaStreamSynchronize(stream));
-    execKernel((THA<data>), gridSize, blockSize, stream, true, th);
+    execKernel((THA<data>), gridSize, N_WARPS, stream, true, th);
     CUDA_RUNTIME(cudaStreamSynchronize(stream));
     return column_of_star_at_row;
   };

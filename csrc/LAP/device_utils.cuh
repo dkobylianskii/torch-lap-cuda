@@ -47,6 +47,5 @@ struct GLOBAL_HANDLE
 
 struct SHARED_HANDLE
 {
-  int n_matches;
-  bool goto_5, repeat_step_4;
+  int n_matches, goto_5;
 };
