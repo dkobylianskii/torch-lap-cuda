@@ -1,2 +1,3 @@
 include README.md
+include figs/*.png
 recursive-include csrc *.cpp *.cu *.cuh *.h *.hpp
