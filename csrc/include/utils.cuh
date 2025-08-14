@@ -4,6 +4,7 @@
 #include <iostream>
 #include <stdio.h>
 #include <stdarg.h>
+#include <ATen/cuda/CUDAContext.h>
 
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
@@ -22,40 +23,12 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort =
   }
 }
 
-#define execKernel(kernel, gridSize, blockSize, deviceId, verbose, ...)                       \
-  {                                                                                           \
-    dim3 grid(gridSize);                                                                      \
-    dim3 block(blockSize);                                                                    \
-                                                                                              \
-    CUDA_RUNTIME(cudaSetDevice(deviceId));                                                    \
-    if (verbose)                                                                              \
-      Log(debug, "Launching %s with nblocks: %u, blockDim: %u", #kernel, gridSize, blockSize); \
-    kernel<<<grid, block>>>(__VA_ARGS__);                                                     \
-    CUDA_RUNTIME(cudaGetLastError());                                                         \
-    CUDA_RUNTIME(cudaDeviceSynchronize());                                                    \
-  }
-
-#define execKernel2(kernel, gridSize, blockSize, deviceId, verbose, ...) \
-  {                                                                      \
-    float singleKernelTime;                                              \
-    cudaEvent_t start, end;                                              \
-    CUDA_RUNTIME(cudaEventCreate(&start));                               \
-    CUDA_RUNTIME(cudaEventCreate(&end));                                 \
-    dim3 grid(gridSize);                                                 \
-    dim3 block(blockSize);                                               \
-                                                                         \
-    CUDA_RUNTIME(cudaSetDevice(deviceId));                               \
-    CUDA_RUNTIME(cudaEventRecord(start));                                \
-    kernel<<<grid, block>>>(__VA_ARGS__);                                \
-    CHECK_KERNEL(#kernel)                                                \
-    CUDA_RUNTIME(cudaPeekAtLastError());                                 \
-    CUDA_RUNTIME(cudaEventRecord(end));                                  \
-                                                                         \
-    CUDA_RUNTIME(cudaEventSynchronize(start));                           \
-    CUDA_RUNTIME(cudaEventSynchronize(end));                             \
-    CUDA_RUNTIME(cudaDeviceSynchronize());                               \
-    CUDA_RUNTIME(cudaEventElapsedTime(&singleKernelTime, start, end));   \
-                                                                         \
-    {                                                                    \
-    }                                                                    \
+#define execKernel(kernel, exec_gridSize, exec_nwarps, stream, verbose, ...)                               \
+  {                                                                                                        \
+    dim3 grid(exec_gridSize);                                                                              \
+    dim3 block(32, exec_nwarps);                                                                           \
+    if (verbose)                                                                                           \
+      Log(debug, "Launching %s with nblocks: %u, blockDim: (%u, 32)", #kernel, exec_gridSize, exec_nwarps);\
+    kernel<<<grid, block, 0, stream>>>(__VA_ARGS__);                                                       \
+    CUDA_RUNTIME(cudaGetLastError());                                                                      \
   }

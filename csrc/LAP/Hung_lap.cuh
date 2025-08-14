@@ -3,122 +3,81 @@
 #include "lap_kernels.cuh"
 #include <thrust/reduce.h>
 #include <thrust/execution_policy.h>
+#include <ATen/cuda/CUDAContext.h>
+#include <c10/cuda/CUDACachingAllocator.h>
 
 template <typename data>
 class TLAP
 {
 private:
-  uint nprob_;
-  int dev_, maxtile;
-  size_t size_, h_nrows, h_ncols;
-  data *Tcost_;
-  uint num_blocks_4, num_blocks_reduction;
+  int gridSize;
+  at::Tensor cost_matrix;
+
+  at::Tensor zeros;
+  at::Tensor zeros_sizes;
+  at::Tensor row_of_star_at_column, column_of_star_at_row;
+  at::Tensor cover_row, cover_column;
+  at::Tensor column_of_prime_at_row, row_of_green_at_column;
+  // at::Tensor row_of_prime_at_column, column_of_green_at_row;
+  at::Tensor tail;
+  at::Tensor d_min_in_mat;
 
 public:
   // Blank constructor
   TILED_HANDLE<data> th;
-  TLAP(uint nproblem, size_t size, int dev = 0)
-      : nprob_(nproblem), dev_(dev), size_(size)
+  TLAP(at::Tensor cost_matrix_)
+      : cost_matrix(cost_matrix_)
   {
-    th.memoryloc = EXTERNAL;
-    allocate(nproblem, size, dev);
-    CUDA_RUNTIME(cudaDeviceSynchronize());
-  }
-  TLAP(uint nproblem, data *tcost, size_t size, int dev = 0)
-      : nprob_(nproblem), Tcost_(tcost), dev_(dev), size_(size)
-  {
-    th.memoryloc = INTERNAL;
-    allocate(nproblem, size, dev);
-    th.cost = Tcost_;
-    // initialize slack
-    CUDA_RUNTIME(cudaMemcpy(th.slack, Tcost_, nproblem * size * size * sizeof(data), cudaMemcpyDeviceToDevice));
-    CUDA_RUNTIME(cudaDeviceSynchronize());
-  };
-  // destructor
-  ~TLAP()
-  {
-    th.clear();
-  }
-
-  void solve()
-  {
-    if (th.memoryloc == EXTERNAL)
-    {
-      Log(critical, "Unassigned external memory, exiting...");
-      return;
-    }
-    int nblocks = maxtile;
-    Log(debug, "nblocks: %d\n", nblocks);
-    execKernel((THA<data, nthr>), nblocks, nthr, dev_, true, th);
-    CUDA_RUNTIME(cudaDeviceSynchronize());
-  }
-
-  void solve(data *costs, int *row_ass, data *row_duals, data *col_duals, data *obj)
-  {
-    if (th.memoryloc == INTERNAL)
-    {
-      Log(debug, "Doubly assigned external memory, exiting...");
-      return;
-    }
-    th.cost = costs;
-    th.row_of_star_at_column = row_ass;
-    th.min_in_rows = row_duals;
-    th.min_in_cols = col_duals;
-    th.objective = obj;
-    int nblocks = maxtile;
-    CUDA_RUNTIME(cudaMemcpy(th.slack, th.cost, nprob_ * size_ * size_ * sizeof(data), cudaMemcpyDefault));
-    Log(debug, "nblocks from external solve: %d\n", nblocks);
-
-    execKernel((THA<data, nthr>), nblocks, nthr, dev_, true, th);
-  }
-
-  void allocate(uint nproblem, size_t size, int dev)
-  {
-    h_nrows = size;
-    h_ncols = size;
-    CUDA_RUNTIME(cudaSetDevice(dev_));
-    CUDA_RUNTIME(cudaMemcpyToSymbol(NPROB, &nprob_, sizeof(NPROB)));
-    CUDA_RUNTIME(cudaMemcpyToSymbol(SIZE, &size, sizeof(SIZE)));
-    CUDA_RUNTIME(cudaMemcpyToSymbol(nrows, &h_nrows, sizeof(SIZE)));
-    CUDA_RUNTIME(cudaMemcpyToSymbol(ncols, &h_ncols, sizeof(SIZE)));
-
-    int max_active_blocks = 1;
-    CUDAContext context;
-    int num_SMs = context.num_SMs;
-
-    cudaOccupancyMaxActiveBlocksPerMultiprocessor(&max_active_blocks,
-                                                  THA<data, nthr>,
-                                                  nthr, 0);
-    max_active_blocks *= num_SMs;
-    maxtile = MIN(nproblem, max_active_blocks);
-    Log(debug, "Grid dimension %d, max active blocks %d", maxtile, max_active_blocks);
+    int n_problem = cost_matrix.size(0);
+    int n_rows = cost_matrix.size(1);
+    int n_cols = cost_matrix.size(2);
+    
+    gridSize = n_problem;
 
     // external memory
-    CUDA_RUNTIME(cudaMalloc((void **)&th.slack, nproblem * size * size * sizeof(data)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.column_of_star_at_row, nproblem * h_nrows * sizeof(int)));
+    th.slack = cost_matrix.data_ptr<data>();
+
+    auto input_dtype = torch::CppTypeToScalarType<data>();
+    auto options = torch::TensorOptions().device(cost_matrix.device()).requires_grad(false);
+    column_of_star_at_row = at::empty({n_problem, n_rows}, options.dtype(torch::kInt32));
+    th.column_of_star_at_row = column_of_star_at_row.data_ptr<int>();
+    row_of_star_at_column = at::empty({n_problem, n_cols}, options.dtype(torch::kInt32));
+    th.row_of_star_at_column = row_of_star_at_column.data_ptr<int>();
 
     // internal memory
-    CUDA_RUNTIME(cudaMalloc((void **)&th.zeros, maxtile * h_nrows * h_ncols * sizeof(size_t)));
-    CUDA_RUNTIME(cudaMemset(th.zeros, 0, maxtile * h_nrows * h_ncols * sizeof(size_t)));
+    zeros = at::empty({gridSize, n_rows, n_cols}, options.dtype(torch::kLong));
+    // organised by column, with n_cols striding
+    th.zeros = zeros.data_ptr<int64_t>();
+    zeros_sizes = at::empty({gridSize, n_rows}, options.dtype(torch::kInt32));
+    th.zeros_sizes = zeros_sizes.data_ptr<int>();
+    // zeros_sizes = at::empty({gridSize}, options.dtype(torch::kInt32));
+    // th.zeros_sizes = zeros_sizes.data_ptr<int>();
 
-    CUDA_RUNTIME(cudaMalloc((void **)&th.cover_row, maxtile * h_nrows * sizeof(int)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.cover_column, maxtile * h_ncols * sizeof(int)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.column_of_prime_at_row, maxtile * h_nrows * sizeof(int)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.row_of_green_at_column, maxtile * h_ncols * sizeof(int)));
+    cover_row = at::empty({gridSize, n_rows}, options.dtype(torch::kInt32));
+    th.cover_row = cover_row.data_ptr<int>();
+    cover_column = at::empty({gridSize, n_cols}, options.dtype(torch::kInt32));
+    th.cover_column = cover_column.data_ptr<int>();
+    column_of_prime_at_row = at::empty({gridSize, n_rows}, options.dtype(torch::kInt32));
+    th.column_of_prime_at_row = column_of_prime_at_row.data_ptr<int>();
+    row_of_green_at_column = at::empty({gridSize, n_cols}, options.dtype(torch::kInt32));
+    th.row_of_green_at_column = row_of_green_at_column.data_ptr<int>();
 
-    CUDA_RUNTIME(cudaMalloc((void **)&th.max_in_mat_row, maxtile * h_nrows * sizeof(data)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.max_in_mat_col, maxtile * h_ncols * sizeof(data)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.d_min_in_mat, maxtile * 1 * sizeof(data)));
-    CUDA_RUNTIME(cudaMalloc((void **)&th.tail, 1 * sizeof(uint)));
+    d_min_in_mat = at::empty({gridSize}, options.dtype(input_dtype));
+    th.d_min_in_mat = d_min_in_mat.data_ptr<data>();
+    tail = at::zeros({1}, options.dtype(torch::kInt32));
+    th.tail = tail.data_ptr<int>();
 
-    CUDA_RUNTIME(cudaMemset(th.tail, 0, sizeof(uint)));
-    // CUDA_RUNTIME(cudaDeviceSynchronize());
-    if (th.memoryloc == INTERNAL)
-    {
-      CUDA_RUNTIME(cudaMalloc((void **)&th.min_in_rows, maxtile * h_nrows * sizeof(data)));
-      CUDA_RUNTIME(cudaMalloc((void **)&th.min_in_cols, maxtile * h_ncols * sizeof(data)));
-      CUDA_RUNTIME(cudaMalloc((void **)&th.row_of_star_at_column, maxtile * h_ncols * sizeof(int)));
-      CUDA_RUNTIME(cudaMallocManaged((void **)&th.objective, nproblem * 1 * sizeof(data)));
-    }
-  }
+    CUDA_RUNTIME(cudaMemcpyToSymbol(NPROB, &n_problem, sizeof(NPROB)));
+    CUDA_RUNTIME(cudaMemcpyToSymbol(SIZE, &n_rows, sizeof(SIZE)));
+  };
+
+  at::Tensor solve()
+  {
+    at::cuda::CUDAStream cuda_stream = at::cuda::getCurrentCUDAStream();
+    cudaStream_t stream = cuda_stream.stream();
+    CUDA_RUNTIME(cudaStreamSynchronize(stream));
+    execKernel((THA<data>), gridSize, N_WARPS, stream, true, th);
+    CUDA_RUNTIME(cudaStreamSynchronize(stream));
+    return column_of_star_at_row;
+  };
 };

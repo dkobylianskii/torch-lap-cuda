@@ -156,8 +156,8 @@ setup(
             "torch_lap_cuda.egg-info",
         )
     ),
-    author="Dmitrii Kobylianskii",
-    author_email="kobad2@gmail.com",
+    author="Dmitrii Kobylianskii, Clinton Ansun Mo",
+    author_email="kobad2@gmail.com, clinton.mo@weblab.t.u-tokyo.ac.jp",
     description="PyTorch wrapper for HyLAC CUDA library for solving linear assignment problems.",
     long_description=long_description,
     long_description_content_type="text/markdown",
