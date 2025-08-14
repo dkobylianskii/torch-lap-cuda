@@ -21,7 +21,7 @@ Please cite the original work if you use this code in your research:  https://do
 - Fast CUDA-based implementation of the LAP solver 
 - Batched processing support for multiple cost matrices
 - Seamless integration with PyTorch
-- Currently supports `torch.float32` and `torch.int32` data types.
+- Supports single and double precision types: `torch.int32, torch.int64, torch.float32, torch.float64`
 
 ## Requirements
 
@@ -43,7 +43,7 @@ You can install the package directly from source:
 ```bash
 git clone https://github.com/dkobylianskii/torch-lap-cuda.git
 cd torch-lap-cuda
-pip install .
+pip install . --no-build-isolation
 ```
 
 ## Usage
@@ -78,12 +78,19 @@ cost_matrix = torch.randn((size, size), device="cuda")
 assignments = solve_lap(cost_matrix)  # Shape: (size,)
 ```
 
+In case of having multiple GPUs, you can specify the device for lap solver using the `device` argument:
+
+```python
+cost_matrix = torch.randn((batch_size, size, size), device="cuda:0")
+assignments = solve_lap(cost_matrix, device="cuda:1")  # assignments will be on cuda:0
+```
+
 ## Input Requirements
 
 - Cost matrices must be on a CUDA device
 - Input can be either 2D (N x N) or 3D (batch_size x N x N) 
 - Matrices must be square
-- Supports both torch.float32 and torch.int32 dtypes
+- Supports single and double precision types: `torch.int32, torch.int64, torch.float32, torch.float64`
 
 ## Benchmarks
 
