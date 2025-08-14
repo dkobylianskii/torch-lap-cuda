@@ -7,7 +7,9 @@ from scipy.optimize import linear_sum_assignment
 
 @pytest.mark.parametrize("batch_size", [1, 64, 128])
 @pytest.mark.parametrize("size", [1, 256, 512])
-@pytest.mark.parametrize("dtype", [torch.float32, torch.int32])
+@pytest.mark.parametrize(
+    "dtype", [torch.int32, torch.int64, torch.float32, torch.float64]
+)
 @pytest.mark.parametrize("random_type", ["rand", "randn", "randint"])
 def test_solve_lap(batch_size, size, dtype, random_type):
     if random_type == "rand":
@@ -26,6 +28,19 @@ def test_solve_lap(batch_size, size, dtype, random_type):
     assert assignments.shape == (batch_size, size)
     assert assignments.dtype == torch.int64
     assert assignments.device.type == "cuda"
+
+
+def test_solve_lap_multi_device():
+    if torch.cuda.device_count() < 2:
+        pytest.skip("This test requires at least two CUDA devices.")
+    # Test with a cost matrix on a different device
+    cost_matrix = torch.rand((1, 256, 256), dtype=torch.float32, device="cuda:0")
+    assignments = solve_lap(cost_matrix, device="cuda:1")
+
+    assert assignments.shape == (1, 256)
+    assert assignments.dtype == torch.int64
+    assert assignments.device.type == "cuda"
+    assert assignments.device.index == 0
 
 
 def test_batch_unsqueeze():
